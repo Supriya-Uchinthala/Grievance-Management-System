@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track Complaint - City Grievance Management System</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
+</head>
+<body>
+<!-- Header -->
+<header class="header">
+    <div class="container">
+        <a href="/" class="logo">City Grievance System</a>
+        <nav>
+            <ul class="nav-menu" id="nav-menu">
+                <li><a href="/">Home</a></li>
+                <li><a href="/submit-complaint">Submit Complaint</a></li>
+                <li><a href="/track-complaint" class="active">Track Complaint</a></li>
+                <li><a href="/login" th:if="${#authorization.expression('!isAuthenticated()')}">Login</a></li>
+                <li><a href="/logout" th:if="${#authorization.expression('isAuthenticated()')}">Logout</a></li>
+            </ul>
+            <button class="mobile-menu-toggle" id="mobile-menu-toggle">☰</button>
+        </nav>
+    </div>
+</header>
+
+<!-- Main Content -->
+<main class="main-content">
+    <div class="container">
+        <h1 class="page-title">Track Your Complaint</h1>
+        <p class="subtitle">Enter your complaint ID or reference number to check the current status</p>
+
+        <!-- Search Section -->
+        <div class="search-container">
+            <form id="track-complaint-form" method="get" action="/track-complaint">
+                <div class="search-row">
+                    <div class="form-group">
+                        <label for="complaintId" class="form-label">Complaint ID / Reference Number</label>
+                        <input type="text"
+                               id="complaintId"
+                               name="complaintId"
+                               class="form-control"
+                               placeholder="Enter your complaint ID (e.g., CMP2024001234)"
+                               th:value="${complaintId}"
+                               required>
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary">
+                            <span id="search-text">Track Complaint</span>
+                            <span id="search-loading" class="d-none">Searching...</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Alert Messages -->
+        <div th:if="${error}" class="alert alert-danger" role="alert">
+            <strong>Error:</strong> <span th:text="${error}">Complaint not found</span>
+        </div>
+
+        <div th:if="${success}" class="alert alert-success" role="alert">
+            <strong>Success:</strong> <span th:text="${success}">Complaint found successfully</span>
+        </div>
+
+        <!-- Complaint Details Section -->
+        <div th:if="${complaint}" class="complaint-details">
+            <!-- Complaint Summary Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Complaint Details</h2>
+                    <span class="badge"
+                          th:class="'badge badge-' + ${complaint.status.toString().toLowerCase().replace('_', '-')}"
+                          th:text="${complaint.status}">
+                            Status
+                        </span>
+                </div>
+
+                <div class="complaint-info">
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>Complaint ID:</label>
+                            <span th:text="${complaint.id}" class="text-primary">#CMP2024001234</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Submitted Date:</label>
+                            <span th:text="${#temporals.format(complaint.createdAt, 'dd MMM yyyy, HH:mm')}">15 Jan 2024, 10:30</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Category:</label>
+                            <span th:text="${complaint.category}">Road Maintenance</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Priority:</label>
+                            <span class="badge"
+                                  th:class="'badge badge-' + ${complaint.priority.toString().toLowerCase()}"
+                                  th:text="${complaint.priority}">
+                                    Medium
+                                </span>
+                        </div>
+                        <div class="info-item">
+                            <label>Department:</label>
+                            <span th:text="${complaint.department?.name}">Public Works</span>
+                        </div>
+                        <div class="info-item" th:if="${complaint.assignedTo}">
+                            <label>Assigned To:</label>
+                            <span th:text="${complaint.assignedTo}">John Smith</span>
+                        </div>
+                    </div>
+
+                    <div class="complaint-description mt-3">
+                        <label>Description:</label>
+                        <p th:text="${complaint.description}">
+                            There is a large pothole on Main Street near the intersection with Oak Avenue.
+                            It's causing damage to vehicles and creating a safety hazard for drivers.
+                        </p>
+                    </div>
+
+                    <div class="complaint-location mt-3" th:if="${complaint.location}">
+                        <label>Location:</label>
+                        <p th:text="${complaint.location}">Main Street, Near Oak Avenue Intersection</p>
+                    </div>
+
+                    <!-- Attachments -->
+                    <div class="complaint-attachments mt-3" th:if="${complaint.attachments}">
+                        <label>Attachments:</label>
+                        <div class="attachment-list">
+                            <div th:each="attachment : ${complaint.attachments}" class="attachment-item">
+                                <a th:href="@{'/api/complaints/' + ${complaint.id} + '/attachments/' + ${attachment.id}}"
+                                   target="_blank"
+                                   class="attachment-link">
+                                    <span th:text="${attachment.filename}">pothole-image.jpg</span>
+                                    <span class="attachment-size" th:text="'(' + ${attachment.size} + ')'">(2.5 MB)</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status Timeline -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Status Timeline</h3>
+                </div>
+
+                <div class="complaint-timeline">
+                    <div th:each="statusUpdate : ${complaint.statusHistory}" class="timeline-item">
+                        <div class="timeline-date" th:text="${#temporals.format(statusUpdate.timestamp, 'dd MMM yyyy, HH:mm')}">
+                            15 Jan 2024, 10:30
+                        </div>
+                        <div class="timeline-status">
+                                <span class="badge"
+                                      th:class="'badge badge-' + ${statusUpdate.status.toString().toLowerCase().replace('_', '-')}"
+                                      th:text="${statusUpdate.status}">
+                                    Submitted
+                                </span>
+                        </div>
+                        <div class="timeline-description" th:if="${statusUpdate.description}">
+                            <p th:text="${statusUpdate.description}">
+                                Complaint has been submitted and is awaiting assignment to appropriate department.
+                            </p>
+                        </div>
+                        <div class="timeline-user" th:if="${statusUpdate.updatedBy}">
+                            <small class="text-muted">Updated by: <span th:text="${statusUpdate.updatedBy}">System</span></small>
+                        </div>
+                    </div>
+
+                    <!-- Default timeline items for demo -->
+                    <div th:if="${#lists.isEmpty(complaint.statusHistory)}" class="timeline-item">
+                        <div class="timeline-date" th:text="${#temporals.format(complaint.createdAt, 'dd MMM yyyy, HH:mm')}">
+                            15 Jan 2024, 10:30
+                        </div>
+                        <div class="timeline-status">
+                            <span class="badge badge-pending">Submitted</span>
+                        </div>
+                        <div class="timeline-description">
+                            <p>Your complaint has been successfully submitted and assigned reference number <span th:text="${complaint.id}" class="text-primary">#CMP2024001234</span>.</p>
+                        </div>
+                        <div class="timeline-user">
+                            <small class="text-muted">Updated by: System</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Expected Resolution -->
+            <div class="card" th:if="${complaint.expectedResolutionDate}">
+                <div class="card-header">
+                    <h3 class="card-title">Expected Resolution</h3>
+                </div>
+                <div class="resolution-info">
+                    <div class="info-item">
+                        <label>Expected Resolution Date:</label>
+                        <span th:text="${#temporals.format(complaint.expectedResolutionDate, 'dd MMM yyyy')}"
+                              class="text-primary">25 Jan 2024</span>
+                    </div>
+                    <div class="progress-container mt-2">
+                        <div class="progress-bar">
+                            <div class="progress-fill"
+                                 th:style="'width: ' + ${complaint.progressPercentage} + '%'"
+                                 style="width: 60%;">
+                            </div>
+                        </div>
+                        <small class="text-muted">
+                            Progress: <span th:text="${complaint.progressPercentage}">60</span>% Complete
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Information -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Need Help?</h3>
+                </div>
+                <div class="contact-info">
+                    <p>If you have any questions about your complaint or need additional assistance, please contact us:</p>
+                    <div class="contact-methods">
+                        <div class="contact-item">
+                            <strong>Phone:</strong> <a href="tel:+1234567890">+1 (234) 567-8900</a>
+                        </div>
+                        <div class="contact-item">
+                            <strong>Email:</strong> <a href="mailto:support@citygrievance.gov">support@citygrievance.gov</a>
+                        </div>
+                        <div class="contact-item">
+                            <strong>Office Hours:</strong> Monday - Friday, 9:00 AM - 5:00 PM
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button class="btn btn-outline" onclick="window.print()">Print Details</button>
+                <a href="/submit-complaint" class="btn btn-secondary">Submit Another Complaint</a>
+                <button class="btn btn-primary" onclick="refreshStatus()">Refresh Status</button>
+            </div>
+        </div>
+
+        <!-- No Complaint Found Message -->
+        <div th:if="${complaintId != null and complaint == null and error == null}" class="card text-center">
+            <div class="no-complaint-found">
+                <h3>No Complaint Found</h3>
+                <p>We couldn't find a complaint with the ID you provided. Please check the ID and try again.</p>
+                <div class="help-section mt-3">
+                    <h4>Common Issues:</h4>
+                    <ul class="help-list">
+                        <li>Make sure you've entered the complete complaint ID</li>
+                        <li>Check for any typos in the ID</li>
+                        <li>Complaint IDs are case-sensitive</li>
+                        <li>If you submitted the complaint recently, please wait a few minutes and try again</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Tips -->
+        <div th:if="${complaint == null}" class="card">
+            <div class="card-header">
+                <h3 class="card-title">Quick Tips</h3>
+            </div>
+            <div class="tips-content">
+                <ul class="tips-list">
+                    <li><strong>Save your Complaint ID:</strong> Keep your complaint reference number safe for future tracking</li>
+                    <li><strong>Check regularly:</strong> Status updates are posted as your complaint progresses</li>
+                    <li><strong>Be patient:</strong> Complex issues may take longer to resolve</li>
+                    <li><strong>Contact us:</strong> Reach out if you haven't heard back within the expected timeframe</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Footer -->
+<footer class="footer">
+    <div class="container">
+        <p>&copy; 2024 City Grievance Management System. All rights reserved.</p>
+        <p>
+            <a href="/privacy">Privacy Policy</a> |
+            <a href="/terms">Terms of Service</a> |
+            <a href="/contact">Contact Us</a>
+        </p>
+    </div>
+</footer>
+
+<!-- JavaScript -->
+<script>
+    // Mobile menu toggle
+    document.getElementById('mobile-menu-toggle').addEventListener('click', function() {
+        const navMenu = document.getElementById('nav-menu');
+        navMenu.classList.toggle('active');
+    });
+
+    // Form submission with loading state
+    document.getElementById('track-complaint-form').addEventListener('submit', function() {
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const searchText = document.getElementById('search-text');
+        const searchLoading = document.getElementById('search-loading');
+
+        searchText.classList.add('d-none');
+        searchLoading.classList.remove('d-none');
+        submitBtn.disabled = true;
+    });
+
+    // Refresh status function
+    function refreshStatus() {
+        const complaintId = document.getElementById('complaintId').value;
+        if (complaintId) {
+            window.location.href = `/track-complaint?complaintId=${encodeURIComponent(complaintId)}&refresh=true`;
+        }
+    }
+
+    // Auto-refresh every 30 seconds if complaint is found and in active status
+    const complaint = /*[[${complaint}]]*/ null;
+    if (complaint && ['PENDING', 'IN_PROGRESS', 'UNDER_REVIEW'].includes(complaint.status)) {
+        setInterval(function() {
+            const complaintId = document.getElementById('complaintId').value;
+            if (complaintId) {
+                fetch(`/api/complaints/${complaintId}/status`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status !== complaint.status) {
+                            // Status changed, refresh the page
+                            window.location.reload();
+                        }
+                    })
+                    .catch(error => {
+                        console.log('Status check failed:', error);
+                    });
+            }
+        }, 30000); // 30 seconds
+    }
+
+    // Format complaint ID input
+    document.getElementById('complaintId').addEventListener('input', function() {
+        let value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        this.value = value;
+    });
+
+    // Copy complaint ID to clipboard
+    function copyComplaintId() {
+        const complaintId = document.querySelector('.complaint-info .text-primary');
+        if (complaintId) {
+            navigator.clipboard.writeText(complaintId.textContent).then(function() {
+                // Show temporary success message
+                const originalText = complaintId.textContent;
+                complaintId.textContent = 'Copied!';
+                complaintId.style.color = '#28a745';
+                setTimeout(function() {
+                    complaintId.textContent = originalText;
+                    complaintId.style.color = '';
+                }, 2000);
+            });
+        }
+    }
+
+    // Add click event to complaint ID for copying
+    document.addEventListener('DOMContentLoaded', function() {
+        const complaintId = document.querySelector('.complaint-info .text-primary');
+        if (complaintId) {
+            complaintId.style.cursor = 'pointer';
+            complaintId.title = 'Click to copy';
+            complaintId.addEventListener('click', copyComplaintId);
+        }
+    });
+</script>
+
+<style>
+    /* Additional styles specific to track complaint page */
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .info-item label {
+        font-weight: 600;
+        color: #6c757d;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .info-item span {
+        font-size: 1rem;
+        color: #2c3e50;
+    }
+
+    .attachment-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .attachment-item {
+        padding: 0.75rem;
+        background-color: #f8f9fa;
+        border-radius: 6px;
+        border-left: 3px solid #667eea;
+    }
+
+    .attachment-link {
+        text-decoration: none;
+        color: #667eea;
+        font-weight: 500;
+    }
+
+    .attachment-link:hover {
+        text-decoration: underline;
+    }
+
+    .attachment-size {
+        color: #6c757d;
+        font-size: 0.875rem;
+        margin-left: 0.5rem;
+    }
+
+    .progress-container {
+        margin-top: 1rem;
+    }
+
+    .progress-bar {
+        width: 100%;
+        height: 8px;
+        background-color: #e9ecef;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        transition: width 0.3s ease;
+    }
+
+    .contact-methods {
+        display: grid;
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+
+    .contact-item {
+        padding: 0.75rem;
+        background-color: #f8f9fa;
+        border-radius: 6px;
+    }
+
+    .contact-item a {
+        color: #667eea;
+        text-decoration: none;
+    }
+
+    .contact-item a:hover {
+        text-decoration: underline;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        margin-top: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .help-section {
+        text-align: left;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .help-list, .tips-list {
+        text-align: left;
+        padding-left: 1.5rem;
+    }
+
+    .help-list li, .tips-list li {
+        margin-bottom: 0.5rem;
+        line-height: 1.5;
+    }
+
+    .no-complaint-found h3 {
+        color: #6c757d;
+        margin-bottom: 1rem;
+    }
+
+    @media (max-width: 768px) {
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+        }
+
+        .action-buttons .btn {
+            width: 100%;
+        }
+    }
+</style>
+</body>
+</html>

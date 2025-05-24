@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit Complaint - City Grievance Management System</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body class="bg-light">
+<!-- Navigation -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container">
+        <a class="navbar-brand" th:href="@{/}">City Grievance System</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/}">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" th:href="@{/submit-complaint}">Submit Complaint</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/track-complaint}">Track Complaint</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/faq}">FAQ</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/contact}">Contact Us</a>
+                </li>
+            </ul>
+            <div class="navbar-nav">
+                <div th:if="${#authorization.expression('isAuthenticated()')}">
+                    <div class="dropdown">
+                        <a class="btn btn-outline-light dropdown-toggle" href="#" role="button" id="userDropdown"
+                           data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-person-circle me-1"></i>
+                            <span th:text="${#authentication.principal.firstName}">User</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            <li><a class="dropdown-item" th:href="@{/profile}">My Profile</a></li>
+                            <li><a class="dropdown-item" th:href="@{/my-complaints}">My Complaints</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form th:action="@{/logout}" method="post" class="dropdown-item p-0">
+                                    <button type="submit" class="dropdown-item">Logout</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div th:unless="${#authorization.expression('isAuthenticated()')}">
+                    <a th:href="@{/login}" class="btn btn-outline-light me-2">Login</a>
+                    <a th:href="@{/register}" class="btn btn-light">Register</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="container my-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Submit a Complaint</h4>
+                </div>
+                <div class="card-body">
+                    <!-- Success Message -->
+                    <div th:if="${param.success}" class="alert alert-success alert-dismissible fade show" role="alert">
+                        Your complaint has been submitted successfully! Your tracking ID is: <strong th:text="${param.trackingId}">XYZ123</strong>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+
+                    <!-- Error Message -->
+                    <div th:if="${param.error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                        There was an error submitting your complaint. Please try again.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+
+                    <form th:action="@{/submit-complaint}" method="post" th:object="${complaintDTO}" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="department" class="form-label">Department</label>
+                            <select class="form-select" id="department" th:field="*{departmentId}" required>
+                                <option value="" selected disabled>Select Department</option>
+                                <option th:each="dept : ${departments}" th:value="${dept.id}" th:text="${dept.name}"></option>
+                            </select>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('departmentId')}" th:errors="*{departmentId}"></div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="subject" class="form-label">Subject</label>
+                            <input type="text" class="form-control" id="subject" th:field="*{subject}" required>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('subject')}" th:errors="*{subject}"></div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" th:field="*{description}" rows="5" required></textarea>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('description')}" th:errors="*{description}"></div>
+                            <small class="text-muted">Please provide detailed information about your complaint.</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="location" class="form-label">Location</label>
+                            <input type="text" class="form-control" id="location" th:field="*{location}" required>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('location')}" th:errors="*{location}"></div>
+                            <div class="form-text">Provide the address or location related to your complaint</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="useCurrentLocation">
+                                <label class="form-check-label" for="useCurrentLocation">
+                                    Use my current location
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="attachments" class="form-label">Attachments</label>
+                            <input class="form-control" type="file" id="attachments" name="attachments" multiple>
+                            <div class="form-text">You can upload up to 3 files (max 5MB each). Accepted formats: jpg, png, pdf.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="priority" class="form-label">Priority</label>
+                            <select class="form-select" id="priority" th:field="*{priority}">
+                                <option value="LOW">Low</option>
+                                <option value="MEDIUM" selected>Medium</option>
+                                <option value="HIGH">High</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="anonymous" th:field="*{anonymous}">
+                            <label class="form-check-label" for="anonymous">Submit anonymously</label>
+                            <small class="form-text d-block text-muted">Note: Anonymous complaints cannot be tracked later.</small>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Submit Complaint</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Footer -->
+<footer class="bg-dark text-white py-4 mt-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-4">
+                <h5>City Grievance Management System</h5>
+                <p>A platform for citizens to report and track civic issues.</p>
+            </div>
+            <div class="col-md-4">
+                <h5>Quick Links</h5>
+                <ul class="list-unstyled">
+                    <li><a href="#" class="text-white">About Us</a></li>
+                    <li><a href="#" class="text-white">FAQ</a></li>
+                    <li><a href="#" class="text-white">Contact Us</a></li>
+                    <li><a href="#" class="text-white">Privacy Policy</a></li>
+                </ul>
+            </div>
+            <div class="col-md-4">
+                <h5>Contact Information</h5>
+                <address>
+                    City Hall, Main Street<br>
+                    Anytown, State 12345<br>
+                    <i class="bi bi-telephone"></i> (123) 456-7890<br>
+                    <i class="bi bi-envelope"></i> <a href="mailto:info@grievance.city.gov" class="text-white">info@grievance.city.gov</a>
+                </address>
+            </div>
+        </div>
+        <hr>
+        <div class="text-center">
+            <p>&copy; 2023 City Grievance Management System. All rights reserved.</p>
+        </div>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+<script th:src="@{/js/scripts.js}"></script>
+<script th:src="@{/js/location-service.js}"></script>
+<script>
+    // Location functionality
+    document.getElementById('useCurrentLocation').addEventListener('change', function() {
+        if (this.checked) {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        const locationInput = document.getElementById('location');
+                        getAddressFromCoordinates(position.coords.latitude, position.coords.longitude)
+                            .then(address => {
+                                locationInput.value = address;
+                            })
+                            .catch(error => {
+                                console.error("Error getting address:", error);
+                                locationInput.value = `Lat: ${position.coords.latitude}, Long: ${position.coords.longitude}`;
+                            });
+                    },
+                    function(error) {
+                        console.error("Error getting location:", error);
+                        alert("Unable to retrieve your location. Please enter it manually.");
+                        document.getElementById('useCurrentLocation').checked = false;
+                    }
+                );
+            } else {
+                alert("Geolocation is not supported by this browser. Please enter your location manually.");
+                this.checked = false;
+            }
+        }
+    });
+</script>
+</body>
+</html>

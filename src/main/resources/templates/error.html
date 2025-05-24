@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error - City Grievance Management System</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body class="bg-light">
+<div class="container">
+    <div class="row justify-content-center align-items-center min-vh-100">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg">
+                <div class="card-body text-center py-5">
+                    <!-- Error Icon -->
+                    <div class="mb-4">
+                        <i class="bi bi-exclamation-triangle text-danger" style="font-size: 4rem;"></i>
+                    </div>
+
+                    <!-- Error Title -->
+                    <h1 class="display-4 text-danger mb-3" th:text="${status ?: '500'}">500</h1>
+
+                    <!-- Error Message -->
+                    <h2 class="h4 mb-3" th:switch="${status}">
+                        <span th:case="400">Bad Request</span>
+                        <span th:case="401">Unauthorized</span>
+                        <span th:case="403">Access Forbidden</span>
+                        <span th:case="404">Page Not Found</span>
+                        <span th:case="500">Internal Server Error</span>
+                        <span th:case="*">Something Went Wrong</span>
+                    </h2>
+
+                    <!-- Error Description -->
+                    <div class="mb-4" th:switch="${status}">
+                        <p th:case="400" class="text-muted">
+                            The request could not be understood by the server due to malformed syntax.
+                        </p>
+                        <p th:case="401" class="text-muted">
+                            You need to log in to access this resource.
+                        </p>
+                        <p th:case="403" class="text-muted">
+                            You don't have permission to access this resource.
+                        </p>
+                        <p th:case="404" class="text-muted">
+                            The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.
+                        </p>
+                        <p th:case="500" class="text-muted">
+                            The server encountered an unexpected condition that prevented it from fulfilling the request.
+                        </p>
+                        <p th:case="*" class="text-muted">
+                            An unexpected error occurred. Please try again later.
+                        </p>
+                    </div>
+
+                    <!-- Custom Error Message -->
+                    <div th:if="${error}" class="alert alert-danger" role="alert">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <span th:text="${error}">Error details</span>
+                    </div>
+
+                    <!-- Exception Details (for development) -->
+                    <div th:if="${message and #strings.contains(#request.serverName, 'localhost')}"
+                         class="alert alert-warning text-start" role="alert">
+                        <h6><i class="bi bi-bug me-2"></i>Technical Details (Development Mode)</h6>
+                        <small th:text="${message}">Exception message</small>
+                    </div>
+
+                    <!-- Timestamp -->
+                    <div class="mb-4">
+                        <small class="text-muted">
+                            Error occurred on: <span th:text="${#dates.format(#dates.createNow(), 'dd/MM/yyyy HH:mm:ss')}">01/01/2023 10:30:45</span>
+                        </small>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                        <button type="button" class="btn btn-primary" onclick="history.back()">
+                            <i class="bi bi-arrow-left me-1"></i>Go Back
+                        </button>
+                        <a th:href="@{/}" class="btn btn-outline-primary">
+                            <i class="bi bi-house me-1"></i>Home Page
+                        </a>
+                        <a th:href="@{/contact}" class="btn btn-outline-secondary">
+                            <i class="bi bi-envelope me-1"></i>Contact Support
+                        </a>
+                    </div>
+
+                    <!-- Help Section -->
+                    <div class="mt-5 pt-4 border-top">
+                        <h5>Need Help?</h5>
+                        <div class="row text-center">
+                            <div class="col-md-4">
+                                <i class="bi bi-question-circle text-primary mb-2" style="font-size: 2rem;"></i>
+                                <h6>FAQ</h6>
+                                <p class="small text-muted">Check our frequently asked questions</p>
+                                <a th:href="@{/faq}" class="btn btn-sm btn-outline-primary">View FAQ</a>
+                            </div>
+                            <div class="col-md-4">
+                                <i class="bi bi-telephone text-success mb-2" style="font-size: 2rem;"></i>
+                                <h6>Call Support</h6>
+                                <p class="small text-muted">Speak with our support team</p>
+                                <a href="tel:+1234567890" class="btn btn-sm btn-outline-success">Call Now</a>
+                            </div>
+                            <div class="col-md-4">
+                                <i class="bi bi-envelope text-info mb-2" style="font-size: 2rem;"></i>
+                                <h6>Email Support</h6>
+                                <p class="small text-muted">Send us your query</p>
+                                <a href="mailto:support@grievance.city.gov" class="btn btn-sm btn-outline-info">Send Email</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Information -->
+            <div class="text-center mt-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">What can you do?</h6>
+                        <ul class="list-unstyled text-start">
+                            <li><i class="bi bi-check-circle text-success me-2"></i>Check the URL for any typos</li>
+                            <li><i class="bi bi-check-circle text-success me-2"></i>Use the navigation menu to find what you're looking for</li>
+                            <li><i class="bi bi-check-circle text-success me-2"></i>Try refreshing the page</li>
+                            <li><i class="bi bi-check-circle text-success me-2"></i>Contact us if the problem persists</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Footer -->
+<footer class="bg-dark text-white py-3 mt-auto">
+    <div class="container text-center">
+        <p class="mb-0">&copy; 2023 City Grievance Management System. All rights reserved.</p>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // Auto-refresh for server errors (optional)
+    if (window.location.search.includes('auto-refresh=true')) {
+        setTimeout(function() {
+            window.location.reload();
+        }, 5000);
+    }
+
+    // Report error functionality
+    function reportError() {
+        const errorData = {
+            status: /*[[${status}]]*/ '500',
+            url: window.location.href,
+            userAgent: navigator.userAgent,
+            timestamp: new Date().toISOString()
+        };
+
+        // Send error report to server
+        fetch('/api/error-report', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(errorData)
+        }).then(response => {
+            if (response.ok) {
+                alert('Error report sent successfully. Thank you for helping us improve!');
+            }
+        }).catch(err => {
+            console.error('Failed to send error report:', err);
+        });
+    }
+</script>
+</body>
+</html>

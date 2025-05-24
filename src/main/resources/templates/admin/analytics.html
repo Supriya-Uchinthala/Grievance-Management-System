@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - Admin Dashboard</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" th:href="@{/css/admin-styles.css}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<!-- Navigation -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" th:href="@{/admin}">
+            <i class="bi bi-gear-fill me-2"></i>Admin Dashboard
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/admin/dashboard}">
+                        <i class="bi bi-speedometer2 me-1"></i>Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/admin/complaints}">
+                        <i class="bi bi-file-text me-1"></i>Complaints
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" th:href="@{/admin/analytics}">
+                        <i class="bi bi-graph-up me-1"></i>Analytics
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/admin/users}">
+                        <i class="bi bi-people me-1"></i>Users
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/admin/departments}">
+                        <i class="bi bi-building me-1"></i>Departments
+                    </a>
+                </li>
+            </ul>
+            <div class="navbar-nav">
+                <div class="dropdown">
+                    <a class="btn btn-outline-light dropdown-toggle" href="#" role="button" id="adminDropdown"
+                       data-bs-toggle="dropdown">
+                        <i class="bi bi-person-circle me-1"></i>
+                        <span th:text="${#authentication.principal.firstName}">Admin</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" th:href="@{/admin/profile}">Profile</a></li>
+                        <li><a class="dropdown-item" th:href="@{/admin/settings}">Settings</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" th:href="@{/}">View Public Site</a></li>
+                        <li>
+                            <form th:action="@{/logout}" method="post" class="dropdown-item p-0">
+                                <button type="submit" class="dropdown-item">Logout</button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Analytics & Reports</h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/admin/dashboard}">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Analytics</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Date Range Filter -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form class="row g-3" id="analyticsFilter">
+                <div class="col-md-3">
+                    <label for="startDate" class="form-label">Start Date</label>
+                    <input type="date" class="form-control" id="startDate" name="startDate"
+                           th:value="${param.startDate}">
+                </div>
+                <div class="col-md-3">
+                    <label for="endDate" class="form-label">End Date</label>
+                    <input type="date" class="form-control" id="endDate" name="endDate"
+                           th:value="${param.endDate}">
+                </div>
+                <div class="col-md-3">
+                    <label for="department" class="form-label">Department</label>
+                    <select class="form-select" id="department" name="department">
+                        <option value="">All Departments</option>
+                        <option th:each="dept : ${departments}"
+                                th:value="${dept.id}"
+                                th:text="${dept.name}"
+                                th:selected="${param.department == dept.id}"></option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="bi bi-filter me-1"></i>Apply Filter
+                    </button>
+                    <button type="button" class="btn btn-outline-success" onclick="exportReport()">
+                        <i class="bi bi-download me-1"></i>Export
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Key Metrics -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-primary text-white mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <div class="small text-white-50">Total Complaints</div>
+                            <div class="h3" th:text="${analytics.totalComplaints}">1,284</div>
+                            <div class="small">
+                                    <span th:if="${analytics.complaintsGrowth >= 0}" class="text-success">
+                                        <i class="bi bi-arrow-up"></i>
+                                        <span th:text="${analytics.complaintsGrowth}">5.2</span>%
+                                    </span>
+                                <span th:if="${analytics.complaintsGrowth < 0}" class="text-danger">
+                                        <i class="bi bi-arrow-down"></i>
+                                        <span th:text="${Math.abs(analytics.complaintsGrowth)}">2.1</span>%
+                                    </span>
+                                vs last period
+                            </div>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-file-text display-6"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-success text-white mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <div class="small text-white-50">Resolution Rate</div>
+                            <div class="h3" th:text="${analytics.resolutionRate + '%'}">87.3%</div>
+                            <div class="small">
+                                    <span th:if="${analytics.resolutionRateChange >= 0}" class="text-success">
+                                        <i class="bi bi-arrow-up"></i>
+                                        <span th:text="${analytics.resolutionRateChange}">2.4</span>%
+                                    </span>
+                                <span th:if="${analytics.resolutionRateChange < 0}" class="text-danger">
+                                        <i class="bi bi-arrow-down"></i>
+                                        <span th:text="${Math.abs(analytics.resolutionRateChange)}">1.2</span>%
+                                    </span>
+                                vs last period
+                            </div>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-check-circle display-6"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-warning text-white mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <div class="small text-white-50">Avg Resolution Time</div>
+                            <div class="h3" th:text="${analytics.avgResolutionTime + ' days'}">4.2 days</div>
+                            <div class="small">
+                                    <span th:if="${analytics.resolutionTimeChange <= 0}" class="text-success">
+                                        <i class="bi bi-arrow-down"></i>
+                                        <span th:text="${Math.abs(analytics.resolutionTimeChange)}">0.8</span> days
+                                    </span>
+                                <span th:if="${analytics.resolutionTimeChange > 0}" class="text-danger">
+                                        <i class="bi bi-arrow-up"></i>
+                                        <span th:text="${analytics.resolutionTimeChange}">1.2</span> days
+                                    </span>
+                                vs last period
+                            </div>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-clock display-6"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-info text-white mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <div class="small text-white-50">Satisfaction Score</div>
+                            <div class="h3" th:text="${analytics.satisfactionScore + '/5'}">4.3/5</div>
+                            <div class="small">
+                                    <span th:if="${analytics.satisfactionChange >= 0}" class="text-success">
+                                        <i class="bi bi-arrow-up"></i>
+                                        <span th:text="${analytics.satisfactionChange}">0.2</span>
+                                    </span>
+                                <span th:if="${analytics.satisfactionChange < 0}" class="text-danger">
+                                        <i class="bi bi-arrow-down"></i>
+                                        <span th:text="${Math.abs(analytics.satisfactionChange)}">0.1</span>
+                                    </span>
+                                vs last period
+                            </div>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-star display-6"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 1 -->
+    <div class="row mb-4">
+        <div class="col-xl-8">
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-graph-up me-1"></i>
+                    Complaints Trend Over Time
+                </div>
+                <div class="card-body">
+                    <canvas id="complaintsTimeChart" width="100%" height="40"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-pie-chart me-1"></i>
+                    Status Distribution
+                </div>
+                <div class="card-body">
+                    <canvas id="statusDistributionChart" width="100%" height="40"></canvas>
+                    <div class="mt-3">
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <div class="border-bottom pb-1">
+                                    <span class="h6" th:text="${analytics.pendingCount}">57</span>
+                                    <div class="text-muted small">Pending</div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="border-bottom pb-1">
+                                    <span class="h6" th:text="${analytics.resolvedCount}">142</span>
+                                    <div class="text-muted small">Resolved</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 2 -->
+    <div class="row mb-4">
+        <div class="col-xl-6">
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-bar-chart me-1"></i>
+                    Department Performance
+                </div>
+                <div class="card-body">
+                    <canvas id="departmentChart" width="100%" height="60"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-6">
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    Priority Distribution
+                </div>
+                <div class="card-body">
+                    <canvas id="priorityChart" width="100%" height="60"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Statistics -->
+    <div class="row mb-4">
+        <div class="col-xl-8">
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-table me-1"></i>
+                    Department Statistics
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                            <tr>
+                                <th>Department</th>
+                                <th>Total</th>
+                                <th>Pending</th>
+                                <th>In Progress</th>
+                                <th>Resolved</th>
+                                <th>Avg. Time</th>
+                                <th>Resolution Rate</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="dept : ${departmentStats}">
+                                <td>
+                                    <strong th:text="${dept.departmentName}">Public Works</strong>
+                                </td>
+                                <td th:text="${dept.totalComplaints}">45</td>
+                                <td>
+                                    <span class="badge bg-secondary" th:text="${dept.pendingComplaints}">8</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-warning" th:text="${dept.inProgressComplaints}">12</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-success" th:text="${dept.resolvedComplaints}">25</span>
+                                </td>
+                                <td th:text="${dept.avgResolutionTime + ' days'}">3.2 days</td>
+                                <td>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar" role="progressbar"
+                                             th:style="'width: ' + ${dept.resolutionRate} + '%'"
+                                             th:text="${dept.resolutionRate + '%'}">78%</div>
+                                    </div>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-geo-alt me-1"></i>
+                    Top Complaint Areas
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item d-flex justify-content-between align-items-center"
+                             th:each="area : ${topAreas}">
+                            <div>
+                                <h6 class="mb-1" th:text="${area.location}">Downtown Area</h6>
+                                <small class="text-muted" th:text="${area.mostCommonType}">Road Maintenance</small>
+                            </div>
+                            <span class="badge bg-primary rounded-pill" th:text="${area.count}">23</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <i class="bi bi-calendar3 me-1"></i>
+                    Peak Hours
+                </div>
+                <div class="card-body">
+                    <canvas id="peakHoursChart" width="100%" height="40"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export and Actions -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-download me-1"></i>
+                    Export Options
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <button type="button" class="btn btn-outline-primary w-100 mb-2" onclick="exportToPDF()">
+                                <i class="bi bi-file-pdf me-1"></i>Export to PDF
+                            </button>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="button" class="btn btn-outline-success w-100 mb-2" onclick="exportToExcel()">
+                                <i class="bi bi-file-excel me-1"></i>Export to Excel
+                            </button>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="button" class="btn btn-outline-info w-100 mb-2" onclick="scheduleReport()">
+                                <i class="bi bi-calendar-check me-1"></i>Schedule Report
+                            </button>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="button" class="btn btn-outline-warning w-100 mb-2" onclick="emailReport()">
+                                <i class="bi bi-envelope me-1"></i>Email Report
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+<script th:src="@{/js/admin-scripts.js}"></script>
+
+<script th:inline="javascript">
+    // Complaints Over Time Chart
+    const timeCtx = document.getElementById('complaintsTimeChart').getContext('2d');
+    const timeData = /*[[${complaintsTimeData}]]*/ [];
+
+    new Chart(timeCtx, {
+        type: 'line',
+        data: {
+            labels: timeData.map(d => d.date),
+            datasets: [{
+                label: 'Submitted',
+                data: timeData.map(d => d.submitted),
+                borderColor: 'rgb(54, 162, 235)',
+                backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                tension: 0.1
+            }, {
+                label: 'Resolved',
+                data: timeData.map(d => d.resolved),
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            interaction: {
+                intersect: false,
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Status Distribution Chart
+    const statusCtx = document.getElementById('statusDistributionChart').getContext('2d');
+    const statusData = /*[[${statusDistributionData}]]*/ [];
+
+    new Chart(statusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: statusData.map(d => d.status),
+            datasets: [{
+                data: statusData.map(d => d.count),
+                backgroundColor: [
+                    '#6c757d', // Pending
+                    '#17a2b8', // Assigned
+                    '#ffc107', // In Progress
+                    '#28a745', // Resolved
+                    '#dc3545'  // Closed
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+
+    // Department Performance Chart
+    const deptCtx = document.getElementById('departmentChart').getContext('2d');
+    const deptData = /*[[${departmentChartData}]]*/ [];
+
+    new Chart(deptCtx, {
+        type: 'bar',
+        data: {
+            labels: deptData.map(d => d.department),
+            datasets: [{
+                label: 'Total Complaints',
+                data: deptData.map(d => d.total),
+                backgroundColor: 'rgba(54, 162, 235, 0.8)'
+            }, {
+                label: 'Resolved',
+                data: deptData.map(d => d.resolved),
+                backgroundColor: 'rgba(75, 192, 192, 0.8)'
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Priority Distribution Chart
+    const priorityCtx = document.getElementById('priorityChart').getContext('2d');
+    const priorityData = /*[[${priorityDistributionData}]]*/ [];
+
+    new Chart(priorityCtx, {
+        type: 'bar',
+        data: {
+            labels: priorityData.map(d => d.priority),
+            datasets: [{
+                label: 'Count',
+                data: priorityData.map(d => d.count),
+                backgroundColor: [
+                    '#dc3545', // High
+                    '#ffc107', // Medium
+                    '#17a2b8'  // Low
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Peak Hours Chart
+    const peakCtx = document.getElementById('peakHoursChart').getContext('2d');
+    const peakData = /*[[${peakHoursData}]]*/ [];
+
+    new Chart(peakCtx, {
+        type: 'bar',
+        data: {
+            labels: peakData.map(d => d.hour + ':00'),
+            datasets: [{
+                label: 'Complaints',
+                data: peakData.map(d => d.count),
+                backgroundColor: 'rgba(255, 193, 7, 0.8)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Export Functions
+    function exportToPDF() {
+        window.open('/admin/analytics/export/pdf?' + new URLSearchParams(getFilterParams()));
+    }
+
+    function exportToExcel() {
+        window.open('/admin/analytics/export/excel?' + new URLSearchParams(getFilterParams()));
+    }
+
+    function getFilterParams() {
+        return {
+            startDate: document.getElementById('startDate').value,
+            endDate: document.getElementById('endDate').value,
+            department: document.getElementById('department').value
+        };
+    }
+
+    function scheduleReport() {
+        // Implement scheduling functionality
+        alert('Schedule report functionality to be implemented');
+    }
+
+    function emailReport() {
+        // Implement email functionality
+        alert('Email report functionality to be implemented');
+    }
+</script>
+</body>
+</html>
